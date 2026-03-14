@@ -218,6 +218,90 @@ tab.set.recorder.on()
 tab.set.recorder.off()
 ```
 
+## Image Download
+
+DrissionPage can download images directly from browser cache - no need to re-download.
+
+### Download Single Image
+
+```python
+# Get image element
+img = tab.ele('tag:img')
+
+# Save to file
+img.save(path='D:/images', name='image.jpg')
+
+# Or get image bytes
+img_bytes = img.src()  # Returns bytes for base64 images
+```
+
+### Download Multiple Images
+
+```python
+import os
+
+# Get all images
+imgs = tab.eles('tag:img')
+
+# Create save directory
+save_dir = 'D:/images'
+os.makedirs(save_dir, exist_ok=True)
+
+# Download images
+for i, img in enumerate(imgs):
+    src = img.attr('src')
+    if src and src.startswith('http'):
+        try:
+            path = img.save(path=save_dir, name=f'image_{i+1}.jpg', timeout=10)
+            print(f'Saved: {path}')
+        except Exception as e:
+            print(f'Failed: {e}')
+```
+
+### Search and Download Images
+
+```python
+from DrissionPage import Chromium
+from time import sleep
+import os
+
+browser = Chromium()
+tab = browser.latest_tab
+
+# Search images on Baidu
+tab.get('https://image.baidu.com/search/index?tn=baiduimage&word=cat')
+sleep(2)
+
+# Download first 10 images
+imgs = tab.eles('tag:img')
+save_dir = './images'
+os.makedirs(save_dir, exist_ok=True)
+
+downloaded = 0
+for img in imgs:
+    if downloaded >= 10:
+        break
+    src = img.attr('src')
+    if src and src.startswith('http'):
+        path = img.save(path=save_dir, name=f'cat_{downloaded+1}.jpg')
+        if path:
+            downloaded += 1
+            print(f'Downloaded: {path}')
+```
+
+### Get Image Data
+
+```python
+# Get image as bytes (useful for processing)
+img_data = img.src()  # Returns bytes or str
+
+# Get image URL
+img_url = img.attr('src')
+
+# Get complete URL (auto-resolved)
+img_url = img.link  # Returns href or src
+```
+
 ## Error Handling
 
 ### Element Not Found

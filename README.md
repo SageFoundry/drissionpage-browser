@@ -8,6 +8,7 @@ A browser automation skill based on [DrissionPage](https://drissionpage.cn/) for
 
 - Browser automation (launch, navigate, click, input)
 - Web data scraping and search
+- **Image download** (search and download images from web)
 - Network request listener (direct API data capture)
 - User intervention support (login, captcha scenarios)
 - Screenshot and recording
@@ -57,6 +58,7 @@ for r in results:
 - Search engine queries
 - Hot news collection
 - Web data scraping
+- Image search and download
 - Automated testing
 - Form auto-fill
 
@@ -94,6 +96,7 @@ Install the `drissionpage-browser.skill` file to your skill manager, or place th
 
 - 浏览器自动化控制（启动、导航、点击、输入）
 - 网页数据采集和搜索
+- **图片下载**（搜索并下载网络图片）
 - 网络请求监听（直接获取 API 数据）
 - 用户介入支持（登录、验证码场景）
 - 截图和录屏
@@ -143,6 +146,7 @@ for r in results:
 - 搜索引擎查询
 - 热点新闻采集
 - 网页数据抓取
+- 图片搜索下载
 - 自动化测试
 - 表单自动填写
 
