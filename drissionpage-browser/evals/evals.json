@@ -1,0 +1,26 @@
+{
+  "skill_name": "drissionpage-browser",
+  "evals": [
+    {
+      "id": 1,
+      "name": "search-news",
+      "prompt": "用 DrissionPage 打开百度搜索今日热点新闻，列出前5条",
+      "expected_output": "列出5条热点新闻标题",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "scrape-links",
+      "prompt": "用 DrissionPage 访问 https://www.python.org 并获取页面上所有链接",
+      "expected_output": "列出页面上的链接",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "query-info",
+      "prompt": "帮我查一下今天北京的天气，用浏览器搜索",
+      "expected_output": "返回北京今日天气信息",
+      "files": []
+    }
+  ]
+}
