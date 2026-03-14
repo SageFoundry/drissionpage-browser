@@ -170,6 +170,8 @@ Skill 内置了以下网站的采集示例：
 - [DrissionPage 官方文档](https://drissionpage.cn/)
 - [DrissionPage GitHub](https://github.com/g1879/DrissionPage)
 
+[![Star History Chart](https://api.star-history.com/svg?repos=SageFoundry/drissionpage-browser&type=Date)](https://star-history.com/#SageFoundry/drissionpage-browser)
+
 ## 许可证
 
 [MIT](LICENSE)
