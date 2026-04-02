@@ -40,6 +40,8 @@ Thumbs.db
 # Test outputs
 *.png
 test_*.py
+artifacts/
+.omx/
 
 # DrissionPage
 DrissionPage/

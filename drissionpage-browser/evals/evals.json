@@ -3,23 +3,30 @@
   "evals": [
     {
       "id": 1,
-      "name": "search-news",
-      "prompt": "用 DrissionPage 打开百度搜索今日热点新闻，列出前5条",
-      "expected_output": "列出5条热点新闻标题",
+      "name": "startup-verification",
+      "prompt": "使用 DrissionPage 和显式浏览器路径启动浏览器，先打开 https://example.com 验证启动成功，并输出页面 title 和 url。",
+      "expected_output": "先验证浏览器启动，再返回 example.com 的 title 和 url。",
       "files": []
     },
     {
       "id": 2,
-      "name": "scrape-links",
-      "prompt": "用 DrissionPage 访问 https://www.python.org 并获取页面上所有链接",
-      "expected_output": "列出页面上的链接",
+      "name": "respect-user-browser-path",
+      "prompt": "用户已提供浏览器路径 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome。使用这个路径启动 DrissionPage，禁止回退到裸 Chromium()，打开 https://example.com 并说明正在复用用户提供的配置。",
+      "expected_output": "明确复用用户提供的路径，完成最小启动验证，且不回退到默认无参启动。",
       "files": []
     },
     {
       "id": 3,
-      "name": "query-info",
-      "prompt": "帮我查一下今天北京的天气，用浏览器搜索",
-      "expected_output": "返回北京今日天气信息",
+      "name": "diagnose-invalid-browser-path",
+      "prompt": "用户给了一个不存在的浏览器路径。先检查路径，再按固定顺序诊断启动失败原因，不要直接继续做网页业务逻辑。",
+      "expected_output": "先指出路径问题，并按浏览器路径、ChromiumOptions、浏览器手动启动、DrissionPage 安装、端口连接顺序诊断。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "structured-research-output",
+      "prompt": "打开一个新闻页面，提取来源标题、来源 URL、核心结论、可上 slide 的一句话、可视化建议、是否需要人工复核。",
+      "expected_output": "返回结构化研究输出，而不只是页面原文。",
       "files": []
     }
   ]

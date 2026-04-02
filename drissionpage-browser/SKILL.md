@@ -1,7 +1,7 @@
 ---
 name: drissionpage-browser
 description: |
-  Browser automation for web data collection and research. Use this skill when the user needs to search the web, query information, scrape data, debug websites, or perform any task requiring a browser. DrissionPage provides fast, persistent browser control with support for user interaction during login/captcha flows. Trigger when user mentions searching, browsing, web scraping, checking websites, getting web content, or any task that requires up-to-date internet information.
+  Browser automation for web data collection and research. Use this skill when the user needs to search the web, query information, scrape data, debug websites, or perform any task requiring a browser. DrissionPage provides persistent browser control with support for user interaction during login and captcha flows. In this skill, browser startup must be validated before business automation continues.
 ---
 
 # DrissionPage Browser Automation
@@ -12,123 +12,187 @@ Browser automation for web data collection, research, and debugging using Drissi
 
 - User asks to search the web or query information
 - User needs to scrape or collect data from websites
-- User wants to check real-time information (news, prices, etc.)
+- User wants to check real-time information such as news or prices
 - User mentions "open browser", "visit website", "click button"
 - User needs to interact with websites that require login
 - User wants to debug or test web applications
-- User asks about current trends, hot topics, or recent events
+- User needs structured research output with sources
+
+## Environment Rules
+
+- Use the user-provided browser path, port, and startup parameters first.
+- Reuse previously validated settings in the same workspace before guessing new values.
+- Default macOS Chrome executable path:
+  `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+- Supported fallback executables on macOS:
+  `/Applications/Chromium.app/Contents/MacOS/Chromium`
+  `/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge`
+- Do not fall back to bare `Chromium()` when a path, port, or launch configuration has already been provided.
+- Before automation, verify the browser executable path exists and launch a minimal page.
+- If startup fails, stop and diagnose startup first. Do not continue into business logic.
+
+## Browser Startup Priority
+
+Use this order every time:
+
+1. User-provided browser path, port, and launch arguments
+2. Previously validated workspace settings
+3. Platform default path for the current machine
+4. If none work, report the startup problem clearly and stop
 
 ## Core Workflow
 
 ```
-1. Start/connect browser → Chromium()
-2. Get tab object → browser.latest_tab
-3. Navigate to URL → tab.get(url)
-4. Find elements → tab.ele() / tab.eles()
-5. Interact → click(), input(), scroll
-6. Extract data → .text, .attr(), run_js()
-7. Handle user intervention if needed (login/captcha)
+1. Resolve browser configuration
+2. Verify browser path exists
+3. Start browser with ChromiumOptions
+4. Open https://example.com
+5. Confirm tab.title or tab.url
+6. Continue with the real task
+7. Capture sources, screenshots, and structured output
 ```
+
+## Default Startup Template
+
+Use this template unless the user has already given a different verified configuration.
+
+```python
+from pathlib import Path
+
+from DrissionPage import Chromium, ChromiumOptions
+
+chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+
+if not Path(chrome_path).exists():
+    raise FileNotFoundError(f'Browser not found: {chrome_path}')
+
+co = ChromiumOptions()
+co.set_browser_path(chrome_path)
+
+browser = Chromium(addr_or_opts=co)
+tab = browser.latest_tab
+
+tab.get('https://example.com')
+tab.wait.doc_loaded()
+
+print(tab.title)
+print(tab.url)
+```
+
+## Startup Verification
+
+Always verify startup before any real work:
+
+```python
+tab.get('https://example.com')
+tab.wait.doc_loaded()
+
+print('Startup title:', tab.title)
+print('Startup url:', tab.url)
+```
+
+Proceed only after this succeeds.
+
+## Failure Diagnosis Order
+
+If browser startup or connection fails, diagnose in this order:
+
+1. Browser executable path exists
+2. `ChromiumOptions` is configured with the intended path and arguments
+3. The browser can be launched manually on the machine
+4. `DrissionPage` is installed correctly
+5. Connection or port mismatch with another browser instance
+6. Only then investigate page selectors or business logic
+
+## Parameter Reuse Rules
+
+- If the user provides a path, port, URL, login step, or startup option, reuse it on all retries.
+- Do not silently replace a user-provided path with a guessed path.
+- If you retry with the user-provided configuration, say that explicitly.
+- If the provided configuration is invalid, explain what failed and which value was used.
 
 ## Quick Reference
 
-### Browser & Tab
+### Browser and Tab
 
 ```python
-from DrissionPage import Chromium
+from pathlib import Path
 
-browser = Chromium()              # Start/connect browser (default port 9222)
-tab = browser.latest_tab          # Get active tab
-tab.get('https://example.com')    # Navigate to URL
-print(tab.url)                    # Current URL
-print(tab.title)                  # Page title
+from DrissionPage import Chromium, ChromiumOptions
+
+chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+
+if not Path(chrome_path).exists():
+    raise FileNotFoundError(chrome_path)
+
+co = ChromiumOptions()
+co.set_browser_path(chrome_path)
+
+browser = Chromium(addr_or_opts=co)
+tab = browser.latest_tab
+
+print(tab.url)
+print(tab.title)
 ```
 
 ### Finding Elements
 
 ```python
-# By ID
 tab.ele('#my-id')
-
-# By class
 tab.ele('.my-class')
-
-# By tag
 tab.ele('tag:div')
-tab.eles('tag:a')                 # Get all links
-
-# By attribute
-tab.ele('@name=username')         # name="username"
-tab.ele('@placeholder:Search')    # placeholder contains "Search"
-
-# By text
-tab.ele('text:Submit')            # Text contains "Submit"
-tab.ele('text=Submit')            # Text equals "Submit"
-
-# CSS selector
+tab.eles('tag:a')
+tab.ele('@name=username')
+tab.ele('@placeholder:Search')
+tab.ele('text:Submit')
+tab.ele('text=Submit')
 tab.ele('css:.container > .item')
-
-# XPath
 tab.ele('xpath://div[@class="content"]')
 ```
 
 ### Interacting with Elements
 
 ```python
-# Click
-ele.click()                       # Normal click
-ele.click(by_js=True)             # JS click (bypass overlays)
+ele.click()
+ele.click(by_js=True)
 
-# Input
-ele.input('Hello World')          # Type text
-ele.input('text\n')               # Type and press Enter
-ele.clear()                       # Clear input
+ele.input('Hello World')
+ele.input('text\n')
+ele.clear()
 
-# Keyboard actions
 from DrissionPage.common import Keys
-tab.actions.key_down(Keys.ENTER)  # Press Enter
-tab.actions.type('text')          # Type with key simulation
+tab.actions.key_down(Keys.ENTER)
+tab.actions.type('text')
 ```
 
 ### Getting Data
 
 ```python
-# Element info
-ele.text                          # Visible text
-ele.attr('href')                  # Attribute value
-ele.html                          # Inner HTML
+ele.text
+ele.attr('href')
+ele.html
 
-# Page content
-tab.html                          # Full HTML
-tab.run_js('return document.body.innerText')  # Page text
-
-# Execute JavaScript
+tab.html
+tab.run_js('return document.body.innerText')
 result = tab.run_js('return document.title')
 ```
 
 ### Scrolling
 
 ```python
-tab.scroll.down(500)              # Scroll down 500px
-tab.scroll.to_bottom()            # Scroll to bottom
-tab.scroll.to_see(ele)            # Scroll element into view
+tab.scroll.down(500)
+tab.scroll.to_bottom()
+tab.scroll.to_see(ele)
 ```
 
 ## Waiting Strategies
 
-### Smart Waiting (Recommended)
+### Smart Waiting
 
 ```python
-# Wait for element to appear
 tab.wait.ele_displayed('#result', timeout=10)
-
-# Wait for element to disappear (loading spinner)
 tab.wait.ele_hidden('.loading', timeout=10)
-
-# Wait for element to be in DOM
 tab.wait.ele_present('.content', timeout=10)
-
-# Wait for page load
 tab.wait.doc_loaded()
 ```
 
@@ -137,9 +201,8 @@ tab.wait.doc_loaded()
 ```python
 from time import sleep
 
-# For AJAX-heavy sites, combine waits
 tab.wait.doc_loaded()
-sleep(2)  # Additional wait for JS execution
+sleep(2)
 tab.wait.ele_displayed('.data-loaded')
 ```
 
@@ -149,7 +212,6 @@ tab.wait.ele_displayed('.data-loaded')
 from time import sleep
 
 def wait_for_data(tab, selector, max_wait=30):
-    """Poll until element appears or timeout."""
     for _ in range(max_wait):
         ele = tab.ele(selector, timeout=1)
         if ele:
@@ -158,81 +220,67 @@ def wait_for_data(tab, selector, max_wait=30):
     return None
 ```
 
-## Network Listener (Capture API Data)
+## Network Listener
 
-DrissionPage can intercept network responses - more reliable than parsing HTML.
+DrissionPage can intercept network responses, which is often more reliable than parsing HTML.
 
 ```python
-from DrissionPage import Chromium
+from pathlib import Path
 
-browser = Chromium()
+from DrissionPage import Chromium, ChromiumOptions
+
+chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+
+if not Path(chrome_path).exists():
+    raise FileNotFoundError(chrome_path)
+
+co = ChromiumOptions()
+co.set_browser_path(chrome_path)
+
+browser = Chromium(addr_or_opts=co)
 tab = browser.latest_tab
 
-# Start listening
-tab.listen.start('api/data')  # Filter by URL pattern
-
-# Trigger the request
 tab.get('https://example.com')
+tab.wait.doc_loaded()
 
-# Wait and get response
+tab.listen.start('api/data')
+tab.refresh()
+
 for packet in tab.listen.steps(timeout=10):
     if packet.url.endswith('api/data'):
-        data = packet.response.body  # JSON data
-        print(data)
+        print(packet.response.body)
         break
 
-# Stop listening
 tab.listen.stop()
 ```
 
-### Common Network Patterns
+## Screenshots and Evidence Capture
+
+Take screenshots on important pages by default, especially when the content will be used in research or slides.
 
 ```python
-# Listen for all XHR/Fetch requests
-tab.listen.start('*.json')
-
-# Listen for specific API
-tab.listen.start('api/search')
-
-# Get all captured packets
-packets = tab.listen.wait()
-for p in packets:
-    print(p.url, p.response.body)
+tab.get_screenshot(path='evidence/page.png')
+tab.get_screenshot(path='evidence/full.png', full_page=True)
+ele.get_screenshot(path='evidence/element.png')
 ```
 
-## Screenshots & Recording
+For key findings, capture:
 
-```python
-# Take screenshot
-tab.get_screenshot(path='screenshot.png')
-
-# Full page screenshot
-tab.get_screenshot(path='full.png', full_page=True)
-
-# Element screenshot
-ele.get_screenshot(path='element.png')
-
-# Start recording (for debugging)
-tab.set.recorder.on()
-# ... perform actions ...
-tab.set.recorder.off()
-```
+- source title
+- source URL
+- extraction time
+- screenshot path if the page is visually important or unstable
 
 ## Image Download
 
-DrissionPage can download images directly from browser cache - no need to re-download.
+DrissionPage can save images from page elements directly.
 
 ### Download Single Image
 
 ```python
-# Get image element
 img = tab.ele('tag:img')
-
-# Save to file
-img.save(path='D:/images', name='image.jpg')
-
-# Or get image bytes
-img_bytes = img.src()  # Returns bytes for base64 images
+img.save(path='./images', name='image.jpg')
+img_bytes = img.src()
 ```
 
 ### Download Multiple Images
@@ -240,66 +288,18 @@ img_bytes = img.src()  # Returns bytes for base64 images
 ```python
 import os
 
-# Get all images
-imgs = tab.eles('tag:img')
-
-# Create save directory
-save_dir = 'D:/images'
-os.makedirs(save_dir, exist_ok=True)
-
-# Download images
-for i, img in enumerate(imgs):
-    src = img.attr('src')
-    if src and src.startswith('http'):
-        try:
-            path = img.save(path=save_dir, name=f'image_{i+1}.jpg', timeout=10)
-            print(f'Saved: {path}')
-        except Exception as e:
-            print(f'Failed: {e}')
-```
-
-### Search and Download Images
-
-```python
-from DrissionPage import Chromium
-from time import sleep
-import os
-
-browser = Chromium()
-tab = browser.latest_tab
-
-# Search images on Baidu
-tab.get('https://image.baidu.com/search/index?tn=baiduimage&word=cat')
-sleep(2)
-
-# Download first 10 images
 imgs = tab.eles('tag:img')
 save_dir = './images'
 os.makedirs(save_dir, exist_ok=True)
 
-downloaded = 0
-for img in imgs:
-    if downloaded >= 10:
-        break
+for i, img in enumerate(imgs):
     src = img.attr('src')
     if src and src.startswith('http'):
-        path = img.save(path=save_dir, name=f'cat_{downloaded+1}.jpg')
-        if path:
-            downloaded += 1
-            print(f'Downloaded: {path}')
-```
-
-### Get Image Data
-
-```python
-# Get image as bytes (useful for processing)
-img_data = img.src()  # Returns bytes or str
-
-# Get image URL
-img_url = img.attr('src')
-
-# Get complete URL (auto-resolved)
-img_url = img.link  # Returns href or src
+        try:
+            path = img.save(path=save_dir, name=f'image_{i + 1}.jpg', timeout=10)
+            print(f'Saved: {path}')
+        except Exception as e:
+            print(f'Failed: {e}')
 ```
 
 ## Error Handling
@@ -307,14 +307,12 @@ img_url = img.link  # Returns href or src
 ### Element Not Found
 
 ```python
-# Safe element access
 ele = tab.ele('#maybe-exists', timeout=5)
 if ele:
     ele.click()
 else:
-    print("Element not found, skipping...")
+    print('Element not found, skipping...')
 
-# Use eles() for lists (returns empty list if none)
 links = tab.eles('tag:a')
 if links:
     for link in links:
@@ -327,46 +325,72 @@ if links:
 try:
     tab.get('https://slow-site.com', timeout=30)
 except Exception as e:
-    print(f"Page load failed: {e}")
-    tab.get('https://fallback.com')
+    print(f'Page load failed: {e}')
 ```
 
-### Handle Alerts/Popups
+### Handle Alerts and Popups
 
 ```python
-# Handle alert automatically
 tab.set.auto_handle_alert(accept=True)
-
-# Or handle manually
 alert_text = tab.handle_alert(accept=True, timeout=5)
-print(f"Alert: {alert_text}")
+print(f'Alert: {alert_text}')
 ```
 
 ## User Intervention Flow
 
-For websites requiring login or captcha:
+For sites requiring login or captcha:
 
 ```python
-from DrissionPage import Chromium
+from pathlib import Path
 
-browser = Chromium()
+from DrissionPage import Chromium, ChromiumOptions
+
+chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+
+if not Path(chrome_path).exists():
+    raise FileNotFoundError(chrome_path)
+
+co = ChromiumOptions()
+co.set_browser_path(chrome_path)
+
+browser = Chromium(addr_or_opts=co)
 tab = browser.latest_tab
+
 tab.get('https://example.com/login')
+print('Please log in or complete captcha in the browser window...')
+input('Press Enter when done...')
 
-# Prompt user to intervene
-print("Please log in or complete captcha in the browser window...")
-input("Press Enter when done...")
-
-# Or wait for specific element that appears after login
 tab.wait.ele_displayed('text:Welcome', timeout=120)
-
-# Continue automation
 tab.get('https://example.com/dashboard')
 ```
 
-## Common Website Selectors
+## Research Workflow
 
-### B站 (bilibili.com)
+Use this default sequence for browser-based research:
+
+1. Resolve browser settings and verify startup with `example.com`
+2. Open the target page
+3. Extract page facts, links, or structured data
+4. Record the source title and source URL
+5. Save a screenshot for key pages or unstable content
+6. Return structured output
+
+## Structured Output Template
+
+For research and collection tasks, prefer this minimum output structure:
+
+```text
+Title: <source title>
+URL: <source url>
+Core finding: <one-paragraph summary>
+Slide-ready line: <one sentence suitable for a presentation>
+Visualization idea: <chart, screenshot, quote, or diagram suggestion>
+Needs manual review: <yes/no and why>
+```
+
+## Common Website Examples
+
+### Bilibili
 
 ```python
 tab.get('https://www.bilibili.com')
@@ -390,7 +414,7 @@ return result;
 ''')
 ```
 
-### 百度热搜 (top.baidu.com)
+### 百度热搜
 
 ```python
 tab.get('https://top.baidu.com/board?tab=realtime')
@@ -408,19 +432,18 @@ return result;
 ''')
 ```
 
-### 微博热搜 (weibo.com)
+### 微博热搜
 
 ```python
 tab.get('https://s.weibo.com/top/summary')
 
-# Hot search items usually in .data table
 items = tab.eles('css:.data tbody tr')
 for item in items:
     text = item.ele('tag:a').text
     print(text)
 ```
 
-### 知乎 (zhihu.com)
+### 知乎热榜
 
 ```python
 tab.get('https://www.zhihu.com/hot')
@@ -436,13 +459,9 @@ for item in items:
 ### Search Engine Query
 
 ```python
-from DrissionPage import Chromium
 from DrissionPage.common import Keys
 
-browser = Chromium()
-tab = browser.latest_tab
 tab.get('https://www.baidu.com')
-
 search_box = tab.ele('#kw')
 search_box.input('search query')
 tab.actions.key_down(Keys.ENTER)
@@ -469,7 +488,7 @@ for link in links:
     text = link.text.strip()
     href = link.attr('href')
     if text and href:
-        print(f"{text}: {href}")
+        print(f'{text}: {href}')
 ```
 
 ### Infinite Scroll
@@ -481,7 +500,7 @@ last_count = 0
 while True:
     items = tab.eles('.item')
     if len(items) == last_count:
-        break  # No new items loaded
+        break
     last_count = len(items)
     tab.scroll.to_bottom()
     sleep(2)
@@ -489,22 +508,16 @@ while True:
 
 ## Tips
 
-1. **Browser Persistence**: The browser stays open after script ends. Re-run `Chromium()` to reconnect.
-
-2. **Clean Browser**: Each session starts with a fresh browser profile. Users can log in manually.
-
-3. **Network Listener First**: For API-driven sites, use network listener instead of HTML parsing - more reliable.
-
-4. **Debugging**: Use `tab.get_screenshot()` to capture page state when debugging.
-
-5. **Complex Selectors**: When locator syntax fails, use `run_js()` with JavaScript.
-
-6. **AJAX Content**: Always wait for dynamic content to load using `tab.wait.*` methods.
-
-7. **Multiple Tabs**: Use `browser.new_tab()` and `browser.get_tab()` for multi-tab scenarios.
+1. Treat browser startup validation as part of the task, not as optional setup.
+2. Prefer explicit `ChromiumOptions` over implicit defaults.
+3. For API-driven sites, network listeners are often more reliable than DOM scraping.
+4. Use screenshots to preserve evidence for key pages.
+5. When selectors are unstable, use `run_js()` to extract data.
+6. For dynamic pages, always wait for the right state before reading data.
+7. Reuse validated settings inside the same workspace.
 
 ## Dependencies
 
 - Python 3.7+
 - DrissionPage: `pip install DrissionPage`
-- Chromium-based browser (Chrome, Edge, etc.)
+- A runnable Chromium-based browser executable path
