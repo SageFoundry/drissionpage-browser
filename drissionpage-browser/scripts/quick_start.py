@@ -7,6 +7,7 @@ This script follows the same startup contract documented in SKILL.md:
 3. Verify startup with example.com before running any real task
 """
 
+import argparse
 import os
 from pathlib import Path
 from time import sleep
@@ -48,6 +49,7 @@ def build_browser(browser_path):
     """Build a Chromium instance with explicit options."""
     options = ChromiumOptions()
     options.set_browser_path(browser_path)
+    options.auto_port()
     return Chromium(addr_or_opts=options)
 
 
@@ -59,7 +61,7 @@ def verify_startup(tab):
     print("Startup url:", tab.url)
 
 
-def test_browser():
+def test_browser(keep_open_seconds=0):
     browser_path, source = resolve_browser_path()
     print(f"Using browser path ({source}): {browser_path}")
 
@@ -93,7 +95,22 @@ def test_browser():
 
     print("\nBrowser test complete!")
     print("If this succeeded, browser startup and task flow are both valid.")
+    if keep_open_seconds > 0:
+        print(f"Keeping browser open for {keep_open_seconds} seconds...")
+        sleep(keep_open_seconds)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--keep-open-seconds",
+        type=int,
+        default=0,
+        help="Keep the browser window open for N seconds after the test finishes.",
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    test_browser()
+    args = parse_args()
+    test_browser(keep_open_seconds=args.keep_open_seconds)

@@ -28,6 +28,7 @@ Browser automation for web data collection, research, and debugging using Drissi
   `/Applications/Chromium.app/Contents/MacOS/Chromium`
   `/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge`
 - Do not fall back to bare `Chromium()` when a path, port, or launch configuration has already been provided.
+- Prefer `ChromiumOptions().auto_port()` for default startup unless the user explicitly requires a fixed port.
 - Before automation, verify the browser executable path exists and launch a minimal page.
 - If startup fails, stop and diagnose startup first. Do not continue into business logic.
 
@@ -68,6 +69,7 @@ if not Path(chrome_path).exists():
 
 co = ChromiumOptions()
 co.set_browser_path(chrome_path)
+co.auto_port()
 
 browser = Chromium(addr_or_opts=co)
 tab = browser.latest_tab
@@ -99,10 +101,11 @@ If browser startup or connection fails, diagnose in this order:
 
 1. Browser executable path exists
 2. `ChromiumOptions` is configured with the intended path and arguments
-3. The browser can be launched manually on the machine
-4. `DrissionPage` is installed correctly
-5. Connection or port mismatch with another browser instance
-6. Only then investigate page selectors or business logic
+3. If you see a WebSocket handshake 404, retry with `ChromiumOptions().auto_port()`
+4. The browser can be launched manually on the machine
+5. `DrissionPage` is installed correctly
+6. Connection or port mismatch with another browser instance
+7. Only then investigate page selectors or business logic
 
 ## Parameter Reuse Rules
 
@@ -127,6 +130,7 @@ if not Path(chrome_path).exists():
 
 co = ChromiumOptions()
 co.set_browser_path(chrome_path)
+co.auto_port()
 
 browser = Chromium(addr_or_opts=co)
 tab = browser.latest_tab
@@ -236,6 +240,7 @@ if not Path(chrome_path).exists():
 
 co = ChromiumOptions()
 co.set_browser_path(chrome_path)
+co.auto_port()
 
 browser = Chromium(addr_or_opts=co)
 tab = browser.latest_tab
@@ -352,17 +357,21 @@ if not Path(chrome_path).exists():
 
 co = ChromiumOptions()
 co.set_browser_path(chrome_path)
+co.auto_port()
 
 browser = Chromium(addr_or_opts=co)
 tab = browser.latest_tab
 
 tab.get('https://example.com/login')
 print('Please log in or complete captcha in the browser window...')
-input('Press Enter when done...')
+from time import sleep
+sleep(60)
 
 tab.wait.ele_displayed('text:Welcome', timeout=120)
 tab.get('https://example.com/dashboard')
 ```
+
+If the environment is non-interactive, do not use `input()` to hold the browser open. Prefer a fixed `sleep()` window or let a CLI flag control the wait time.
 
 ## Research Workflow
 
@@ -509,12 +518,13 @@ while True:
 ## Tips
 
 1. Treat browser startup validation as part of the task, not as optional setup.
-2. Prefer explicit `ChromiumOptions` over implicit defaults.
+2. Prefer explicit `ChromiumOptions` and `auto_port()` over implicit defaults.
 3. For API-driven sites, network listeners are often more reliable than DOM scraping.
 4. Use screenshots to preserve evidence for key pages.
 5. When selectors are unstable, use `run_js()` to extract data.
 6. For dynamic pages, always wait for the right state before reading data.
-7. Reuse validated settings inside the same workspace.
+7. In non-interactive environments, use timed waits instead of `input()`.
+8. Reuse validated settings inside the same workspace.
 
 ## Dependencies
 

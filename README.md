@@ -59,6 +59,7 @@ The skill uses this startup priority:
 4. If none work, stop and report the startup problem
 
 Do not fall back to bare `Chromium()` once a verified path or user-provided configuration exists.
+Prefer `auto_port()` for default startup. Use a fixed port only when you intentionally manage a specific browser instance.
 
 ## Recommended Startup Template
 
@@ -74,6 +75,7 @@ if not Path(chrome_path).exists():
 
 co = ChromiumOptions()
 co.set_browser_path(chrome_path)
+co.auto_port()
 
 browser = Chromium(addr_or_opts=co)
 tab = browser.latest_tab
@@ -96,6 +98,7 @@ python3 drissionpage-browser/scripts/quick_start.py
 What it does:
 
 - resolves a browser path using explicit priority
+- enables `auto_port()` to avoid fragile fixed-port startup
 - verifies startup with `https://example.com`
 - opens Baidu and runs a basic search
 - prints page title, URL, and result count
@@ -126,10 +129,11 @@ When startup fails, diagnose in this order:
 
 1. Browser path exists
 2. `ChromiumOptions` setup is correct
-3. Browser can launch manually
-4. `DrissionPage` is installed correctly
-5. Connection or port mismatch
-6. Only then inspect page logic
+3. If you see a WebSocket 404 during startup, retry with `auto_port()`
+4. Browser can launch manually
+5. `DrissionPage` is installed correctly
+6. Connection or port mismatch
+7. Only then inspect page logic
 
 ## Use Cases
 
@@ -225,6 +229,7 @@ Skill 的浏览器启动优先级如下：
 4. 如果都不可用，直接报告启动问题并停止
 
 一旦已经有可用路径或用户给定配置，不要再回退到裸 `Chromium()`。
+默认启动优先使用 `auto_port()`；只有在你明确管理某个浏览器实例时才使用固定端口。
 
 ## 推荐启动模板
 
@@ -240,6 +245,7 @@ if not Path(chrome_path).exists():
 
 co = ChromiumOptions()
 co.set_browser_path(chrome_path)
+co.auto_port()
 
 browser = Chromium(addr_or_opts=co)
 tab = browser.latest_tab
@@ -262,6 +268,7 @@ python3 drissionpage-browser/scripts/quick_start.py
 脚本会：
 
 - 按明确优先级解析浏览器路径
+- 默认启用 `auto_port()`，避免依赖固定端口
 - 先用 `https://example.com` 验证启动
 - 再打开百度执行一次基础搜索
 - 输出标题、URL 和结果数量
@@ -292,10 +299,11 @@ python3 drissionpage-browser/scripts/quick_start.py
 
 1. 浏览器路径是否存在
 2. `ChromiumOptions` 是否配置正确
-3. 浏览器能否手动启动
-4. `DrissionPage` 是否安装正确
-5. 是否连到了错误的端口或实例
-6. 只有这些都确认后，再查页面逻辑
+3. 如果启动时遇到 WebSocket 404，优先改用 `auto_port()`
+4. 浏览器能否手动启动
+5. `DrissionPage` 是否安装正确
+6. 是否连到了错误的端口或实例
+7. 只有这些都确认后，再查页面逻辑
 
 ## 使用场景
 
