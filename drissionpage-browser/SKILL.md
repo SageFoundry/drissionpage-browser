@@ -27,6 +27,12 @@ Browser automation for web data collection, research, and debugging using Drissi
 - Supported fallback executables on macOS:
   `/Applications/Chromium.app/Contents/MacOS/Chromium`
   `/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge`
+- Default Windows Chrome executable path:
+  `C:\Program Files\Google\Chrome\Application\chrome.exe`
+- Supported fallback executables on Windows:
+  `C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`
+  `C:\Program Files\Chromium\Application\chrome.exe`
+  `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`
 - Do not fall back to bare `Chromium()` when a path, port, or launch configuration has already been provided.
 - Prefer `ChromiumOptions().auto_port()` for default startup unless the user explicitly requires a fixed port.
 - Before automation, verify the browser executable path exists and launch a minimal page.
@@ -58,11 +64,20 @@ Use this order every time:
 Use this template unless the user has already given a different verified configuration.
 
 ```python
+import sys
 from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+# Cross-platform browser path resolution
+# Override via DRISSIONPAGE_BROWSER_PATH env var or set chrome_path directly
+import os
+chrome_path = os.environ.get(
+    'DRISSIONPAGE_BROWSER_PATH',
+    r'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    if sys.platform.startswith('win')
+    else '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+)
 
 if not Path(chrome_path).exists():
     raise FileNotFoundError(f'Browser not found: {chrome_path}')
@@ -119,11 +134,18 @@ If browser startup or connection fails, diagnose in this order:
 ### Browser and Tab
 
 ```python
+import sys
 from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+import os
+chrome_path = os.environ.get(
+    'DRISSIONPAGE_BROWSER_PATH',
+    r'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    if sys.platform.startswith('win')
+    else '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+)
 
 if not Path(chrome_path).exists():
     raise FileNotFoundError(chrome_path)
@@ -229,11 +251,18 @@ def wait_for_data(tab, selector, max_wait=30):
 DrissionPage can intercept network responses, which is often more reliable than parsing HTML.
 
 ```python
+import sys
 from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+import os
+chrome_path = os.environ.get(
+    'DRISSIONPAGE_BROWSER_PATH',
+    r'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    if sys.platform.startswith('win')
+    else '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+)
 
 if not Path(chrome_path).exists():
     raise FileNotFoundError(chrome_path)
@@ -346,11 +375,18 @@ print(f'Alert: {alert_text}')
 For sites requiring login or captcha:
 
 ```python
+import sys
 from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+import os
+chrome_path = os.environ.get(
+    'DRISSIONPAGE_BROWSER_PATH',
+    r'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    if sys.platform.startswith('win')
+    else '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+)
 
 if not Path(chrome_path).exists():
     raise FileNotFoundError(chrome_path)

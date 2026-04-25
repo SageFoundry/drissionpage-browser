@@ -49,6 +49,22 @@ Other common macOS candidates:
 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
 ```
 
+### Windows Default Browser Path
+
+Recommended default:
+
+```text
+C:\Program Files\Google\Chrome\Application\chrome.exe
+```
+
+Other common Windows candidates:
+
+```text
+C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
+C:\Program Files\Chromium\Application\chrome.exe
+C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+```
+
 ## Startup Contract
 
 The skill uses this startup priority:
@@ -64,11 +80,18 @@ Prefer `auto_port()` for default startup. Use a fixed port only when you intenti
 ## Recommended Startup Template
 
 ```python
+import sys
 from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+import os
+chrome_path = os.environ.get(
+    'DRISSIONPAGE_BROWSER_PATH',
+    r'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    if sys.platform.startswith('win')
+    else '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+)
 
 if not Path(chrome_path).exists():
     raise FileNotFoundError(f'Browser not found: {chrome_path}')
@@ -92,7 +115,11 @@ print(tab.url)
 Run the included validation script:
 
 ```bash
+# macOS / Linux
 python3 drissionpage-browser/scripts/quick_start.py
+
+# Windows
+python drissionpage-browser/scripts/quick_start.py
 ```
 
 What it does:
@@ -219,6 +246,22 @@ drissionpage-browser.skill  # 打包产物
 /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge
 ```
 
+### Windows 默认浏览器路径
+
+推荐默认值：
+
+```text
+C:\Program Files\Google\Chrome\Application\chrome.exe
+```
+
+其他常见候选：
+
+```text
+C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
+C:\Program Files\Chromium\Application\chrome.exe
+C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+```
+
 ## 启动约定
 
 Skill 的浏览器启动优先级如下：
@@ -234,11 +277,18 @@ Skill 的浏览器启动优先级如下：
 ## 推荐启动模板
 
 ```python
+import sys
 from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+import os
+chrome_path = os.environ.get(
+    'DRISSIONPAGE_BROWSER_PATH',
+    r'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    if sys.platform.startswith('win')
+    else '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+)
 
 if not Path(chrome_path).exists():
     raise FileNotFoundError(f'Browser not found: {chrome_path}')
@@ -262,7 +312,11 @@ print(tab.url)
 运行仓库自带验证脚本：
 
 ```bash
+# macOS / Linux
 python3 drissionpage-browser/scripts/quick_start.py
+
+# Windows
+python drissionpage-browser/scripts/quick_start.py
 ```
 
 脚本会：

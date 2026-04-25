@@ -3,12 +3,13 @@ Quick start helper for DrissionPage browser automation.
 
 This script follows the same startup contract documented in SKILL.md:
 1. Prefer an explicit browser path from the environment
-2. Otherwise use a known working macOS path
+2. Otherwise use a known working platform path (macOS / Windows)
 3. Verify startup with example.com before running any real task
 """
 
 import argparse
 import os
+import sys
 from pathlib import Path
 from time import sleep
 
@@ -16,7 +17,14 @@ from DrissionPage import Chromium, ChromiumOptions
 from DrissionPage.common import Keys
 
 
-DEFAULT_CANDIDATES = [
+DEFAULT_CANDIDATES_WIN = [
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files\Chromium\Application\chrome.exe",
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+]
+
+DEFAULT_CANDIDATES_MAC = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
@@ -34,7 +42,9 @@ def resolve_browser_path():
             )
         return str(candidate), "user-provided"
 
-    for candidate in DEFAULT_CANDIDATES:
+    candidates = DEFAULT_CANDIDATES_WIN if sys.platform.startswith("win") else DEFAULT_CANDIDATES_MAC
+
+    for candidate in candidates:
         path = Path(candidate)
         if path.exists():
             return str(path), "platform-default"
