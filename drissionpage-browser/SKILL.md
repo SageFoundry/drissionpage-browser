@@ -35,6 +35,7 @@ Browser automation for web data collection, research, and debugging using Drissi
   `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`
 - Do not fall back to bare `Chromium()` when a path, port, or launch configuration has already been provided.
 - Prefer `ChromiumOptions().auto_port()` for default startup unless the user explicitly requires a fixed port.
+- **Always run port cleanup (kill lingering Chrome processes + clean `.DrissionPage_auto_port` lock files) before every browser launch.** Without this, a previous session's stale Chrome can cause WebSocket 404 errors on the same port.
 - Before automation, verify the browser executable path exists and launch a minimal page.
 - If startup fails, stop and diagnose startup first. Do not continue into business logic.
 
@@ -52,11 +53,38 @@ Use this order every time:
 ```
 1. Resolve browser configuration
 2. Verify browser path exists
-3. Start browser with ChromiumOptions
-4. Open https://example.com
+3. Clean up lingering browser processes and DrissionPage port lock files
+4. Start browser with ChromiumOptions (always prefer auto_port)
+5. Open https://example.com
 5. Confirm tab.title or tab.url
 6. Continue with the real task
 7. Capture sources, screenshots, and structured output
+```
+
+## Startup Port Cleanup (Required Before Every Launch)
+
+Add this at the **beginning** of every startup script to prevent lingering browser processes from interfering with DrissionPage's `auto_port()`:
+
+```python
+import os
+import sys
+import shutil
+import tempfile
+
+def cleanup_browser_stale_state():
+    """Kill leftover browser processes and clean DrissionPage port lock files."""
+    if sys.platform.startswith('win'):
+        os.system('taskkill /F /IM chrome.exe >nul 2>nul')
+    elif sys.platform.startswith('darwin'):
+        os.system('pkill -9 -f "Google Chrome" >/dev/null 2>&1')
+    else:
+        os.system('pkill -9 -f "chrome" >/dev/null 2>&1')
+    # Clean DrissionPage auto_port lock files
+    auto_port_dir = os.path.join(tempfile.gettempdir(), '.DrissionPage_auto_port')
+    if os.path.exists(auto_port_dir):
+        shutil.rmtree(auto_port_dir, ignore_errors=True)
+
+cleanup_browser_stale_state()
 ```
 
 ## Default Startup Template
@@ -69,9 +97,20 @@ from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
+# Clean lingering browser processes and port locks first
+import os, shutil, tempfile
+if sys.platform.startswith('win'):
+    os.system('taskkill /F /IM chrome.exe >nul 2>nul')
+elif sys.platform.startswith('darwin'):
+    os.system('pkill -9 -f "Google Chrome" >/dev/null 2>&1')
+else:
+    os.system('pkill -9 -f "chrome" >/dev/null 2>&1')
+auto_port_dir = os.path.join(tempfile.gettempdir(), '.DrissionPage_auto_port')
+if os.path.exists(auto_port_dir):
+    shutil.rmtree(auto_port_dir, ignore_errors=True)
+
 # Cross-platform browser path resolution
 # Override via DRISSIONPAGE_BROWSER_PATH env var or set chrome_path directly
-import os
 chrome_path = os.environ.get(
     'DRISSIONPAGE_BROWSER_PATH',
     r'C:\Program Files\Google\Chrome\Application\chrome.exe'
@@ -116,11 +155,23 @@ If browser startup or connection fails, diagnose in this order:
 
 1. Browser executable path exists
 2. `ChromiumOptions` is configured with the intended path and arguments
-3. If you see a WebSocket handshake 404, retry with `ChromiumOptions().auto_port()`
-4. The browser can be launched manually on the machine
-5. `DrissionPage` is installed correctly
-6. Connection or port mismatch with another browser instance
-7. Only then investigate page selectors or business logic
+3. If you see a WebSocket handshake 404, 403, or connection refused:
+   a. **Kill all lingering Chrome/Chromium processes** first:
+      - Windows: `os.system('taskkill /F /IM chrome.exe')`
+      - macOS/Linux: `os.system('pkill -f Google Chrome')`
+   b. **Clean DrissionPage auto_port lock files**:
+      ```python
+      import shutil, tempfile
+      auto_port_dir = os.path.join(tempfile.gettempdir(), '.DrissionPage_auto_port')
+      if os.path.exists(auto_port_dir):
+          shutil.rmtree(auto_port_dir, ignore_errors=True)
+      ```
+   c. Then retry with `ChromiumOptions().auto_port()`
+4. If still failing, try a fixed port explicitly: `co.set_port(9999)` (avoid 9222, 9223)
+5. The browser can be launched manually on the machine
+6. `DrissionPage` is installed correctly
+7. Connection or port mismatch with another browser instance
+8. Only then investigate page selectors or business logic
 
 ## Parameter Reuse Rules
 
@@ -139,7 +190,19 @@ from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-import os
+# --- Port cleanup (always run before startup) ---
+import os, shutil, tempfile
+if sys.platform.startswith('win'):
+    os.system('taskkill /F /IM chrome.exe >nul 2>nul')
+elif sys.platform.startswith('darwin'):
+    os.system('pkill -9 -f "Google Chrome" >/dev/null 2>&1')
+else:
+    os.system('pkill -9 -f "chrome" >/dev/null 2>&1')
+auto_port_dir = os.path.join(tempfile.gettempdir(), '.DrissionPage_auto_port')
+if os.path.exists(auto_port_dir):
+    shutil.rmtree(auto_port_dir, ignore_errors=True)
+# --- end cleanup ---
+
 chrome_path = os.environ.get(
     'DRISSIONPAGE_BROWSER_PATH',
     r'C:\Program Files\Google\Chrome\Application\chrome.exe'
@@ -256,7 +319,19 @@ from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-import os
+# --- Port cleanup ---
+import os, shutil, tempfile
+if sys.platform.startswith('win'):
+    os.system('taskkill /F /IM chrome.exe >nul 2>nul')
+elif sys.platform.startswith('darwin'):
+    os.system('pkill -9 -f "Google Chrome" >/dev/null 2>&1')
+else:
+    os.system('pkill -9 -f "chrome" >/dev/null 2>&1')
+auto_port_dir = os.path.join(tempfile.gettempdir(), '.DrissionPage_auto_port')
+if os.path.exists(auto_port_dir):
+    shutil.rmtree(auto_port_dir, ignore_errors=True)
+# --- end cleanup ---
+
 chrome_path = os.environ.get(
     'DRISSIONPAGE_BROWSER_PATH',
     r'C:\Program Files\Google\Chrome\Application\chrome.exe'
@@ -380,7 +455,19 @@ from pathlib import Path
 
 from DrissionPage import Chromium, ChromiumOptions
 
-import os
+# --- Port cleanup ---
+import os, shutil, tempfile
+if sys.platform.startswith('win'):
+    os.system('taskkill /F /IM chrome.exe >nul 2>nul')
+elif sys.platform.startswith('darwin'):
+    os.system('pkill -9 -f "Google Chrome" >/dev/null 2>&1')
+else:
+    os.system('pkill -9 -f "chrome" >/dev/null 2>&1')
+auto_port_dir = os.path.join(tempfile.gettempdir(), '.DrissionPage_auto_port')
+if os.path.exists(auto_port_dir):
+    shutil.rmtree(auto_port_dir, ignore_errors=True)
+# --- end cleanup ---
+
 chrome_path = os.environ.get(
     'DRISSIONPAGE_BROWSER_PATH',
     r'C:\Program Files\Google\Chrome\Application\chrome.exe'
@@ -554,7 +641,7 @@ while True:
 ## Tips
 
 1. Treat browser startup validation as part of the task, not as optional setup.
-2. Prefer explicit `ChromiumOptions` and `auto_port()` over implicit defaults.
+2. **Always run port cleanup before every browser launch** — kill lingering Chrome processes and delete `.DrissionPage_auto_port` lock files. This is the #1 cause of WebSocket 404 errors.
 3. For API-driven sites, network listeners are often more reliable than DOM scraping.
 4. Use screenshots to preserve evidence for key pages.
 5. When selectors are unstable, use `run_js()` to extract data.
